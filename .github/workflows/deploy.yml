@@ -7,10 +7,10 @@ on:
       - qa
 
 env:
-  S3_BUCKET_DEV: your-dev-bucket
-  S3_BUCKET_QA: your-qa-bucket
-  CLOUDFRONT_DEV: your-dev-dist-id
-  CLOUDFRONT_QA: your-qa-dist-id
+  S3_BUCKET_DEV: deploy-s3-react-app
+  # S3_BUCKET_QA: your-qa-bucket
+  # CLOUDFRONT_DEV: your-dev-dist-id
+  # CLOUDFRONT_QA: your-qa-dist-id
 
 jobs:
   build-and-deploy:
@@ -33,10 +33,12 @@ jobs:
 
     - name: Install Dependencies
       run: npm install
+      working-directory: s3-react-demo
 
     # 🔥 React Build (IMPORTANT CHANGE)
     - name: Build React App
       run: npm run build
+      working-directory: s3-react-demo
 
     # 🔹 Dynamic Env Selection
     - name: Set Environment (Bucket + CDN)
@@ -59,22 +61,22 @@ jobs:
     # 🔹 Deploy React build
     - name: Deploy to S3
       run: |
-        aws s3 sync build/ s3://$BUCKET \
+        aws s3 sync s3-react-demo/build/ s3://$BUCKET \
         --delete \
         --exclude "index.html"
 
     # 🔹 SPA Fix (VERY IMPORTANT)
     - name: Upload index.html (No Cache)
       run: |
-        aws s3 cp build/index.html s3://$BUCKET/index.html \
+        aws s3 cp s3-react-demo/build/index.html s3://$BUCKET/index.html \
         --cache-control "no-cache"
 
     # 🔥 CDN STEP
-    - name: Invalidate CloudFront Cache
-      run: |
-        aws cloudfront create-invalidation \
-        --distribution-id $DIST_ID \
-        --paths "/*"
+    # - name: Invalidate CloudFront Cache
+    #   run: |
+    #     aws cloudfront create-invalidation \
+    #     --distribution-id $DIST_ID \
+    #     --paths "/*"
 
     # 🔹 Artifact (optional)
     - name: Upload Artifact
